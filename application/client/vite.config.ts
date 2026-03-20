@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,25 +8,6 @@ import { viteStaticCopy } from "vite-plugin-static-copy";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
-
-/**
- * ?binary クエリを持つインポートをバイナリ(Uint8Array)として返すプラグイン
- * webpack の `asset/bytes` (resourceQuery: /binary/) 相当
- */
-function binaryPlugin() {
-  const BINARY_RE = /\?binary$/;
-  return {
-    name: "vite-plugin-binary",
-    enforce: "pre" as const,
-    load(id: string) {
-      if (!BINARY_RE.test(id)) return null;
-      const filePath = id.replace(BINARY_RE, "");
-      const buffer = fs.readFileSync(filePath);
-      const base64 = buffer.toString("base64");
-      return `const enc="${base64}";const s=atob(enc);const b=new Uint8Array(s.length);for(let i=0;i<s.length;i++)b[i]=s.charCodeAt(i);export default b;`;
-    },
-  };
-}
 
 export default defineConfig({
   root: path.resolve(__dirname, "."),
@@ -51,7 +31,6 @@ export default defineConfig({
   },
   plugins: [
     react(),
-    binaryPlugin(),
     viteStaticCopy({
       targets: [
         {
