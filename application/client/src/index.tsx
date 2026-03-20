@@ -1,3 +1,9 @@
+// CSS エントリポイント
+import "./index.css";
+
+// ビルド情報
+import "./buildinfo";
+
 import { createRoot } from "react-dom/client";
 import { Provider } from "react-redux";
 import { BrowserRouter } from "react-router";
