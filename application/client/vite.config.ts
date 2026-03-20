@@ -3,7 +3,6 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import inject from "@rollup/plugin-inject";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { viteStaticCopy } from "vite-plugin-static-copy";
@@ -53,14 +52,6 @@ export default defineConfig({
   plugins: [
     react(),
     binaryPlugin(),
-    // webpack ProvidePlugin 相当: $, jQuery, window.jQuery, Buffer を自動注入
-    inject({
-      include: /\.(js|jsx|ts|tsx|mjs|cjs)$/,
-      $: "jquery",
-      jQuery: "jquery",
-      "window.jQuery": "jquery",
-      Buffer: ["buffer", "Buffer"],
-    }),
     viteStaticCopy({
       targets: [
         {

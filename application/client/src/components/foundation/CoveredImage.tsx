@@ -12,6 +12,33 @@ interface Props {
   src: string;
 }
 
+function bytesToBinaryString(bytes: Uint8Array): string {
+  let result = "";
+  const chunkSize = 0x8000;
+
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    result += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+
+  return result;
+}
+
+function decodeExifText(value: unknown): string {
+  if (typeof value === "string") {
+    return new TextDecoder().decode(Uint8Array.from(value, (char) => char.charCodeAt(0)));
+  }
+
+  if (value instanceof Uint8Array) {
+    return new TextDecoder().decode(value);
+  }
+
+  if (Array.isArray(value)) {
+    return new TextDecoder().decode(Uint8Array.from(value));
+  }
+
+  return "";
+}
+
 /**
  * アスペクト比を維持したまま、要素のコンテンツボックス全体を埋めるように画像を拡大縮小します
  */
@@ -23,16 +50,17 @@ export const CoveredImage = ({ src }: Props) => {
   }, []);
 
   const { data, isLoading } = useFetch(src, fetchBinary);
+  const bytes = useMemo(() => (data != null ? new Uint8Array(data) : null), [data]);
 
   const imageSize = useMemo(() => {
-    return data != null ? sizeOf(Buffer.from(data)) : { height: 0, width: 0 };
-  }, [data]);
+    return bytes != null ? sizeOf(bytes) : { height: 0, width: 0 };
+  }, [bytes]);
 
   const alt = useMemo(() => {
-    const exif = data != null ? load(Buffer.from(data).toString("binary")) : null;
+    const exif = bytes != null ? load(bytesToBinaryString(bytes)) : null;
     const raw = exif?.["0th"]?.[ImageIFD.ImageDescription];
-    return raw != null ? new TextDecoder().decode(Buffer.from(raw, "binary")) : "";
-  }, [data]);
+    return raw != null ? decodeExifText(raw) : "";
+  }, [bytes]);
 
   const blobUrl = useMemo(() => {
     return data != null ? URL.createObjectURL(new Blob([data])) : null;
