@@ -1,20 +1,70 @@
-import { useCallback, useEffect, useId, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useId, useState } from "react";
 import { Helmet, HelmetProvider } from "react-helmet";
 import { Route, Routes, useLocation, useNavigate } from "react-router";
 
 import { AppPage } from "@web-speed-hackathon-2026/client/src/components/application/AppPage";
 import { AuthModalContainer } from "@web-speed-hackathon-2026/client/src/containers/AuthModalContainer";
-import { CrokContainer } from "@web-speed-hackathon-2026/client/src/containers/CrokContainer";
-import { DirectMessageContainer } from "@web-speed-hackathon-2026/client/src/containers/DirectMessageContainer";
-import { DirectMessageListContainer } from "@web-speed-hackathon-2026/client/src/containers/DirectMessageListContainer";
-import { NewPostModalContainer } from "@web-speed-hackathon-2026/client/src/containers/NewPostModalContainer";
-import { NotFoundContainer } from "@web-speed-hackathon-2026/client/src/containers/NotFoundContainer";
-import { PostContainer } from "@web-speed-hackathon-2026/client/src/containers/PostContainer";
-import { SearchContainer } from "@web-speed-hackathon-2026/client/src/containers/SearchContainer";
-import { TermContainer } from "@web-speed-hackathon-2026/client/src/containers/TermContainer";
-import { TimelineContainer } from "@web-speed-hackathon-2026/client/src/containers/TimelineContainer";
-import { UserProfileContainer } from "@web-speed-hackathon-2026/client/src/containers/UserProfileContainer";
 import { fetchJSON, sendJSON } from "@web-speed-hackathon-2026/client/src/utils/fetchers";
+
+const TimelineContainer = lazy(() =>
+  import("@web-speed-hackathon-2026/client/src/containers/TimelineContainer").then(
+    ({ TimelineContainer }) => ({ default: TimelineContainer }),
+  ),
+);
+
+const DirectMessageListContainer = lazy(() =>
+  import("@web-speed-hackathon-2026/client/src/containers/DirectMessageListContainer").then(
+    ({ DirectMessageListContainer }) => ({ default: DirectMessageListContainer }),
+  ),
+);
+
+const DirectMessageContainer = lazy(() =>
+  import("@web-speed-hackathon-2026/client/src/containers/DirectMessageContainer").then(
+    ({ DirectMessageContainer }) => ({ default: DirectMessageContainer }),
+  ),
+);
+
+const SearchContainer = lazy(() =>
+  import("@web-speed-hackathon-2026/client/src/containers/SearchContainer").then(
+    ({ SearchContainer }) => ({ default: SearchContainer }),
+  ),
+);
+
+const UserProfileContainer = lazy(() =>
+  import("@web-speed-hackathon-2026/client/src/containers/UserProfileContainer").then(
+    ({ UserProfileContainer }) => ({ default: UserProfileContainer }),
+  ),
+);
+
+const PostContainer = lazy(() =>
+  import("@web-speed-hackathon-2026/client/src/containers/PostContainer").then(
+    ({ PostContainer }) => ({ default: PostContainer }),
+  ),
+);
+
+const TermContainer = lazy(() =>
+  import("@web-speed-hackathon-2026/client/src/containers/TermContainer").then(
+    ({ TermContainer }) => ({ default: TermContainer }),
+  ),
+);
+
+const CrokContainer = lazy(() =>
+  import("@web-speed-hackathon-2026/client/src/containers/CrokContainer").then(
+    ({ CrokContainer }) => ({ default: CrokContainer }),
+  ),
+);
+
+const NotFoundContainer = lazy(() =>
+  import("@web-speed-hackathon-2026/client/src/containers/NotFoundContainer").then(
+    ({ NotFoundContainer }) => ({ default: NotFoundContainer }),
+  ),
+);
+
+const NewPostModalContainer = lazy(() =>
+  import("@web-speed-hackathon-2026/client/src/containers/NewPostModalContainer").then(
+    ({ NewPostModalContainer }) => ({ default: NewPostModalContainer }),
+  ),
+);
 
 export const AppContainer = () => {
   const { pathname } = useLocation();
@@ -61,32 +111,42 @@ export const AppContainer = () => {
         newPostModalId={newPostModalId}
         onLogout={handleLogout}
       >
-        <Routes>
-          <Route element={<TimelineContainer />} path="/" />
-          <Route
-            element={
-              <DirectMessageListContainer activeUser={activeUser} authModalId={authModalId} />
-            }
-            path="/dm"
-          />
-          <Route
-            element={<DirectMessageContainer activeUser={activeUser} authModalId={authModalId} />}
-            path="/dm/:conversationId"
-          />
-          <Route element={<SearchContainer />} path="/search" />
-          <Route element={<UserProfileContainer />} path="/users/:username" />
-          <Route element={<PostContainer />} path="/posts/:postId" />
-          <Route element={<TermContainer />} path="/terms" />
-          <Route
-            element={<CrokContainer activeUser={activeUser} authModalId={authModalId} />}
-            path="/crok"
-          />
-          <Route element={<NotFoundContainer />} path="*" />
-        </Routes>
+        <Suspense
+          fallback={
+            <div className="text-cax-text-subtle grid min-h-32 place-items-center text-sm">
+              読み込み中...
+            </div>
+          }
+        >
+          <Routes>
+            <Route element={<TimelineContainer />} path="/" />
+            <Route
+              element={
+                <DirectMessageListContainer activeUser={activeUser} authModalId={authModalId} />
+              }
+              path="/dm"
+            />
+            <Route
+              element={<DirectMessageContainer activeUser={activeUser} authModalId={authModalId} />}
+              path="/dm/:conversationId"
+            />
+            <Route element={<SearchContainer />} path="/search" />
+            <Route element={<UserProfileContainer />} path="/users/:username" />
+            <Route element={<PostContainer />} path="/posts/:postId" />
+            <Route element={<TermContainer />} path="/terms" />
+            <Route
+              element={<CrokContainer activeUser={activeUser} authModalId={authModalId} />}
+              path="/crok"
+            />
+            <Route element={<NotFoundContainer />} path="*" />
+          </Routes>
+        </Suspense>
       </AppPage>
 
       <AuthModalContainer id={authModalId} onUpdateActiveUser={setActiveUser} />
-      <NewPostModalContainer id={newPostModalId} />
+      <Suspense fallback={null}>
+        <NewPostModalContainer id={newPostModalId} />
+      </Suspense>
     </HelmetProvider>
   );
 };
