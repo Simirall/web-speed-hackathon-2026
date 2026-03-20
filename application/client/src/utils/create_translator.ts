@@ -1,8 +1,9 @@
 import { CreateMLCEngine } from "@mlc-ai/web-llm";
-import { stripIndents } from "common-tags";
 import * as JSONRepairJS from "json-repair-js";
 import langs from "langs";
 import invariant from "tiny-invariant";
+
+import { dedent } from "./dedent";
 
 interface Translator {
   translate(text: string): Promise<string>;
@@ -29,7 +30,7 @@ export async function createTranslator(params: Params): Promise<Translator> {
         messages: [
           {
             role: "system",
-            content: stripIndents`
+            content: dedent`
               You are a professional translator. Translate the following text from ${sourceLang.name} to ${targetLang.name}.
               Provide as JSON only in the format: { "result": "{{translated text}}" } without any additional explanations.
             `,

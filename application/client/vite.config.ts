@@ -2,7 +2,8 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import react from "@vitejs/plugin-react";
+import react, { reactCompilerPreset } from '@vitejs/plugin-react'
+import babel from '@rolldown/plugin-babel'
 import { defineConfig } from "vite";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 import tailwindcss from '@tailwindcss/vite'
@@ -32,6 +33,9 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    babel({
+      presets: [reactCompilerPreset()]
+    }),
     tailwindcss(),
     viteStaticCopy({
       targets: [
