@@ -7,7 +7,7 @@ export const userRouter = Router();
 
 userRouter.get("/me", async (req, res) => {
   if (req.session.userId === undefined) {
-    throw new httpErrors.Unauthorized();
+    return res.status(204).send();
   }
   const user = await User.findByPk(req.session.userId);
 

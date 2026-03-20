@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet";
 import { useParams } from "react-router";
 
+import { AuthPendingPage } from "@web-speed-hackathon-2026/client/src/components/application/AuthPendingPage";
 import { DirectMessageGate } from "@web-speed-hackathon-2026/client/src/components/direct_message/DirectMessageGate";
 import { DirectMessagePage } from "@web-speed-hackathon-2026/client/src/components/direct_message/DirectMessagePage";
 import { NotFoundContainer } from "@web-speed-hackathon-2026/client/src/containers/NotFoundContainer";
@@ -22,10 +23,15 @@ const TYPING_INDICATOR_DURATION_MS = 10 * 1000;
 
 interface Props {
   activeUser: Models.User | null;
+  isLoadingActiveUser: boolean;
   authModalId: string;
 }
 
-export const DirectMessageContainer = ({ activeUser, authModalId }: Props) => {
+export const DirectMessageContainer = ({
+  activeUser,
+  isLoadingActiveUser,
+  authModalId,
+}: Props) => {
   const { conversationId = "" } = useParams<{ conversationId: string }>();
 
   const [conversation, setConversation] = useState<Models.DirectMessageConversation | null>(null);
@@ -53,13 +59,19 @@ export const DirectMessageContainer = ({ activeUser, authModalId }: Props) => {
   }, [activeUser, conversationId]);
 
   const sendRead = useCallback(async () => {
+    if (activeUser == null) {
+      return;
+    }
     await sendJSON(`/api/v1/dm/${conversationId}/read`, {});
-  }, [conversationId]);
+  }, [activeUser, conversationId]);
 
   useEffect(() => {
+    if (isLoadingActiveUser || activeUser == null) {
+      return;
+    }
     void loadConversation();
     void sendRead();
-  }, [loadConversation, sendRead]);
+  }, [activeUser, isLoadingActiveUser, loadConversation, sendRead]);
 
   const handleSubmit = useCallback(
     async (params: DirectMessageFormData) => {
@@ -80,7 +92,7 @@ export const DirectMessageContainer = ({ activeUser, authModalId }: Props) => {
     void sendJSON(`/api/v1/dm/${conversationId}/typing`, {});
   }, [conversationId]);
 
-  useWs(`/api/v1/dm/${conversationId}`, (event: DmUpdateEvent | DmTypingEvent) => {
+  useWs(activeUser !== null && !isLoadingActiveUser ? `/api/v1/dm/${conversationId}` : "", (event: DmUpdateEvent | DmTypingEvent) => {
     if (event.type === "dm:conversation:message") {
       void loadConversation().then(() => {
         if (event.payload.sender.id !== activeUser?.id) {
@@ -102,6 +114,15 @@ export const DirectMessageContainer = ({ activeUser, authModalId }: Props) => {
       }, TYPING_INDICATOR_DURATION_MS);
     }
   });
+
+  if (isLoadingActiveUser) {
+    return (
+      <AuthPendingPage
+        title="ダイレクトメッセージ"
+        message="会話を表示する前にサインイン状態を確認しています。"
+      />
+    );
+  }
 
   if (activeUser === null) {
     return (

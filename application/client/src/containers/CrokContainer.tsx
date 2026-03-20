@@ -1,16 +1,18 @@
 import { useCallback, useMemo, useState } from "react";
 import { Helmet } from "react-helmet";
 
+import { AuthPendingPage } from "@web-speed-hackathon-2026/client/src/components/application/AuthPendingPage";
 import { CrokGate } from "@web-speed-hackathon-2026/client/src/components/crok/CrokGate";
 import { CrokPage } from "@web-speed-hackathon-2026/client/src/components/crok/CrokPage";
 import { useSSE } from "@web-speed-hackathon-2026/client/src/hooks/use_sse";
 
 type Props = {
   activeUser: Models.User | null;
+  isLoadingActiveUser: boolean;
   authModalId: string;
 };
 
-export const CrokContainer = ({ activeUser, authModalId }: Props) => {
+export const CrokContainer = ({ activeUser, isLoadingActiveUser, authModalId }: Props) => {
   const [messages, setMessages] = useState<Models.ChatMessage[]>([]);
 
   const sseOptions = useMemo(
@@ -69,6 +71,10 @@ export const CrokContainer = ({ activeUser, authModalId }: Props) => {
     },
     [isStreaming, start],
   );
+
+  if (isLoadingActiveUser) {
+    return <AuthPendingPage title="Crok" message="サインイン状態を確認しています。" />;
+  }
 
   if (!activeUser) {
     return (

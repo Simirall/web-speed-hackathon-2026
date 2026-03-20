@@ -4,13 +4,9 @@ import { Route, Routes, useLocation, useNavigate } from "react-router";
 
 import { AppPage } from "@web-speed-hackathon-2026/client/src/components/application/AppPage";
 import { AuthModalContainer } from "@web-speed-hackathon-2026/client/src/containers/AuthModalContainer";
-import { fetchJSON, sendJSON } from "@web-speed-hackathon-2026/client/src/utils/fetchers";
-
-const TimelineContainer = lazy(() =>
-  import("@web-speed-hackathon-2026/client/src/containers/TimelineContainer").then(
-    ({ TimelineContainer }) => ({ default: TimelineContainer }),
-  ),
-);
+import { PostContainer } from "@web-speed-hackathon-2026/client/src/containers/PostContainer";
+import { TimelineContainer } from "@web-speed-hackathon-2026/client/src/containers/TimelineContainer";
+import { sendJSON } from "@web-speed-hackathon-2026/client/src/utils/fetchers";
 
 const DirectMessageListContainer = lazy(() =>
   import("@web-speed-hackathon-2026/client/src/containers/DirectMessageListContainer").then(
@@ -33,12 +29,6 @@ const SearchContainer = lazy(() =>
 const UserProfileContainer = lazy(() =>
   import("@web-speed-hackathon-2026/client/src/containers/UserProfileContainer").then(
     ({ UserProfileContainer }) => ({ default: UserProfileContainer }),
-  ),
-);
-
-const PostContainer = lazy(() =>
-  import("@web-speed-hackathon-2026/client/src/containers/PostContainer").then(
-    ({ PostContainer }) => ({ default: PostContainer }),
   ),
 );
 
@@ -66,24 +56,41 @@ const NewPostModalContainer = lazy(() =>
   ),
 );
 
+async function fetchActiveUser(): Promise<Models.User | null> {
+  const response = await fetch("/api/v1/me");
+  if (response.status === 204) {
+    return null;
+  }
+  if (!response.ok) {
+    throw new Error(`HTTP error: ${response.status}`);
+  }
+  return response.json() as Promise<Models.User>;
+}
+
 export const AppContainer = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
 
   const [activeUser, setActiveUser] = useState<Models.User | null>(null);
   const [isLoadingActiveUser, setIsLoadingActiveUser] = useState(true);
+
   useEffect(() => {
-    void fetchJSON<Models.User>("/api/v1/me")
+    void fetchActiveUser()
       .then((user) => {
         setActiveUser(user);
+      })
+      .catch(() => {
+        setActiveUser(null);
       })
       .finally(() => {
         setIsLoadingActiveUser(false);
       });
-  }, [setActiveUser, setIsLoadingActiveUser]);
+  }, []);
+
   const handleLogout = useCallback(async () => {
     await sendJSON("/api/v1/signout", {});
     setActiveUser(null);
@@ -93,20 +100,14 @@ export const AppContainer = () => {
   const authModalId = useId();
   const newPostModalId = useId();
 
-  if (isLoadingActiveUser) {
-    return (
-      <HelmetProvider>
-        <Helmet>
-          <title>読込中 - CaX</title>
-        </Helmet>
-      </HelmetProvider>
-    );
-  }
-
   return (
     <HelmetProvider>
+      <Helmet>
+        <title>CaX</title>
+      </Helmet>
       <AppPage
         activeUser={activeUser}
+        isLoadingActiveUser={isLoadingActiveUser}
         authModalId={authModalId}
         newPostModalId={newPostModalId}
         onLogout={handleLogout}
@@ -122,12 +123,22 @@ export const AppContainer = () => {
             <Route element={<TimelineContainer />} path="/" />
             <Route
               element={
-                <DirectMessageListContainer activeUser={activeUser} authModalId={authModalId} />
+                <DirectMessageListContainer
+                  activeUser={activeUser}
+                  isLoadingActiveUser={isLoadingActiveUser}
+                  authModalId={authModalId}
+                />
               }
               path="/dm"
             />
             <Route
-              element={<DirectMessageContainer activeUser={activeUser} authModalId={authModalId} />}
+              element={
+                <DirectMessageContainer
+                  activeUser={activeUser}
+                  isLoadingActiveUser={isLoadingActiveUser}
+                  authModalId={authModalId}
+                />
+              }
               path="/dm/:conversationId"
             />
             <Route element={<SearchContainer />} path="/search" />
@@ -135,7 +146,13 @@ export const AppContainer = () => {
             <Route element={<PostContainer />} path="/posts/:postId" />
             <Route element={<TermContainer />} path="/terms" />
             <Route
-              element={<CrokContainer activeUser={activeUser} authModalId={authModalId} />}
+              element={
+                <CrokContainer
+                  activeUser={activeUser}
+                  isLoadingActiveUser={isLoadingActiveUser}
+                  authModalId={authModalId}
+                />
+              }
               path="/crok"
             />
             <Route element={<NotFoundContainer />} path="*" />

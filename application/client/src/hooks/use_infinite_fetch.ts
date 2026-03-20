@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const LIMIT = 30;
+const DEFAULT_LIMIT = 30;
 
 function appendPaginationParams(apiPath: string, limit: number, offset: number) {
   const url = new URL(apiPath, window.location.origin);
   url.searchParams.set("limit", String(limit));
   url.searchParams.set("offset", String(offset));
   return `${url.pathname}${url.search}`;
+}
+
+interface Options {
+  limit?: number;
 }
 
 interface ReturnValues<T> {
@@ -20,7 +24,9 @@ interface ReturnValues<T> {
 export function useInfiniteFetch<T>(
   apiPath: string,
   fetcher: (apiPath: string) => Promise<T[]>,
+  options: Options = {},
 ): ReturnValues<T> {
+  const limit = options.limit ?? DEFAULT_LIMIT;
   const internalRef = useRef({ hasMore: true, isLoading: false, offset: 0 });
 
   const [result, setResult] = useState<Omit<ReturnValues<T>, "fetchMore">>({
@@ -46,16 +52,16 @@ export function useInfiniteFetch<T>(
       offset,
     };
 
-    void fetcher(appendPaginationParams(apiPath, LIMIT, offset)).then(
+    void fetcher(appendPaginationParams(apiPath, limit, offset)).then(
       (pageData) => {
         setResult((cur) => ({
           ...cur,
           data: [...cur.data, ...pageData],
-          hasMore: pageData.length === LIMIT,
+          hasMore: pageData.length === limit,
           isLoading: false,
         }));
         internalRef.current = {
-          hasMore: pageData.length === LIMIT,
+          hasMore: pageData.length === limit,
           isLoading: false,
           offset: offset + pageData.length,
         };
@@ -73,7 +79,7 @@ export function useInfiniteFetch<T>(
         };
       },
     );
-  }, [apiPath, fetcher]);
+  }, [apiPath, fetcher, limit]);
 
   useEffect(() => {
     if (apiPath === "") {

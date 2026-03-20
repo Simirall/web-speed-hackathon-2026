@@ -27,11 +27,13 @@ const isClickedAnchorOrButton = (target: EventTarget | null, currentTarget: Elem
  * @property {Models.Post} post
  */
 interface Props {
+  index: number;
   post: Models.Post;
 }
 
-export const TimelineItem = ({ post }: Props) => {
+export const TimelineItem = ({ index, post }: Props) => {
   const navigate = useNavigate();
+  const prioritizeImage = index < 3;
 
   /**
    * ボタンやリンク以外の箇所をクリックしたとき かつ 文字が選択されてないとき、投稿詳細ページに遷移する
@@ -86,7 +88,11 @@ export const TimelineItem = ({ post }: Props) => {
           </div>
           {post.images?.length > 0 ? (
             <div className="relative mt-2 w-full">
-              <ImageArea fetchPriority="low" images={post.images} loading="lazy" />
+              <ImageArea
+                fetchPriority={prioritizeImage ? "high" : "low"}
+                images={post.images}
+                loading={prioritizeImage ? "eager" : "lazy"}
+              />
             </div>
           ) : null}
           {post.movie ? (

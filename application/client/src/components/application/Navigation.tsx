@@ -6,12 +6,19 @@ import { FontAwesomeIcon } from "@web-speed-hackathon-2026/client/src/components
 
 interface Props {
   activeUser: Models.User | null;
+  isLoadingActiveUser: boolean;
   authModalId: string;
   newPostModalId: string;
   onLogout: () => void;
 }
 
-export const Navigation = ({ activeUser, authModalId, newPostModalId, onLogout }: Props) => {
+export const Navigation = ({
+  activeUser,
+  isLoadingActiveUser,
+  authModalId,
+  newPostModalId,
+  onLogout,
+}: Props) => {
   return (
     <nav className="border-cax-border bg-cax-surface fixed right-0 bottom-0 left-0 z-10 h-12 border-t lg:relative lg:h-full lg:w-48 lg:border-t-0 lg:border-r">
       <div className="relative grid grid-flow-col items-center justify-evenly lg:fixed lg:flex lg:h-full lg:w-48 lg:flex-col lg:justify-between lg:p-2">
@@ -49,7 +56,7 @@ export const Navigation = ({ activeUser, authModalId, newPostModalId, onLogout }
               text="マイページ"
             />
           ) : null}
-          {activeUser === null ? (
+          {activeUser === null && !isLoadingActiveUser ? (
             <NavigationItem
               icon={<FontAwesomeIcon iconType="sign-in-alt" styleType="solid" />}
               text="サインイン"
@@ -69,6 +76,11 @@ export const Navigation = ({ activeUser, authModalId, newPostModalId, onLogout }
             icon={<FontAwesomeIcon iconType="balance-scale" styleType="solid" />}
             text="利用規約"
           />
+          {isLoadingActiveUser ? (
+            <li className="hidden lg:block">
+              <div className="h-10 w-28 animate-pulse rounded-full bg-cax-brand-soft" />
+            </li>
+          ) : null}
         </ul>
 
         {activeUser !== null ? <AccountMenu user={activeUser} onLogout={onLogout} /> : null}
