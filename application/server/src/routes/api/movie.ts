@@ -9,7 +9,8 @@ import { v4 as uuidv4 } from "uuid";
 import { UPLOAD_PATH } from "@web-speed-hackathon-2026/server/src/paths";
 
 // 変換した動画の拡張子
-const EXTENSION = "gif";
+const EXTENSION = "webm";
+const MIME_TYPE = "video/webm";
 
 export const movieRouter = Router();
 
@@ -22,7 +23,7 @@ movieRouter.post("/movies", async (req, res) => {
   }
 
   const type = await fileTypeFromBuffer(req.body);
-  if (type === undefined || type.ext !== EXTENSION) {
+  if (type === undefined || type.ext !== EXTENSION || type.mime !== MIME_TYPE) {
     throw new httpErrors.BadRequest("Invalid file type");
   }
 

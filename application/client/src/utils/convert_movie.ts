@@ -11,9 +11,10 @@ interface Options {
 export async function convertMovie(file: File, options: Options): Promise<Blob> {
   const ffmpeg = await loadFFmpeg();
 
-  const cropOptions = [
-    "'min(iw,ih)':'min(iw,ih)'",
+  const videoFilters = [
+    "crop='min(iw,ih)':'min(iw,ih)'",
     options.size ? `scale=${options.size}:${options.size}` : undefined,
+    "fps=10",
   ]
     .filter(Boolean)
     .join(",");
@@ -26,11 +27,17 @@ export async function convertMovie(file: File, options: Options): Promise<Blob> 
     "file",
     "-t",
     "5",
-    "-r",
-    "10",
     "-vf",
-    `crop=${cropOptions}`,
+    videoFilters,
     "-an",
+    "-c:v",
+    "libvpx",
+    "-pix_fmt",
+    "yuv420p",
+    "-crf",
+    "36",
+    "-b:v",
+    "0",
     exportFile,
   ]);
 
@@ -38,6 +45,5 @@ export async function convertMovie(file: File, options: Options): Promise<Blob> 
 
   ffmpeg.terminate();
 
-  const blob = new Blob([output]);
-  return blob;
+  return new Blob([output.buffer], { type: `video/${options.extension}` });
 }

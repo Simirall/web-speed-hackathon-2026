@@ -1,84 +1,114 @@
 import classNames from "classnames";
-import { Animator, Decoder } from "gifler";
-import { GifReader } from "omggif";
-import { RefCallback, useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import { AspectRatioBox } from "@web-speed-hackathon-2026/client/src/components/foundation/AspectRatioBox";
 import { FontAwesomeIcon } from "@web-speed-hackathon-2026/client/src/components/foundation/FontAwesomeIcon";
-import { useFetch } from "@web-speed-hackathon-2026/client/src/hooks/use_fetch";
-import { fetchBinary } from "@web-speed-hackathon-2026/client/src/utils/fetchers";
 
 interface Props {
   src: string;
 }
 
+type MovieStatus = "loading" | "ready" | "error";
+
 /**
  * クリックすると再生・一時停止を切り替えます。
  */
 export const PausableMovie = ({ src }: Props) => {
-  const { data, error, isLoading } = useFetch(src, fetchBinary);
-  const isReady = !isLoading && error === null && data !== null;
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [status, setStatus] = useState<MovieStatus>("loading");
+  const [isPlaying, setIsPlaying] = useState(false);
+  const isReady = status === "ready";
 
-  const animatorRef = useRef<Animator>(null);
-  const canvasCallbackRef = useCallback<RefCallback<HTMLCanvasElement>>(
-    (el) => {
-      animatorRef.current?.stop();
+  const handleLoadStart = useCallback(() => {
+    setStatus("loading");
+    setIsPlaying(false);
+  }, []);
 
-      if (el === null || data === null) {
-        return;
-      }
+  const handleLoadedData = useCallback(() => {
+    const video = videoRef.current;
 
-      // GIF を解析する
-      const reader = new GifReader(new Uint8Array(data));
-      const frames = Decoder.decodeFramesSync(reader);
-      const animator = new Animator(reader, frames);
+    if (video === null) {
+      return;
+    }
 
-      animator.animateInCanvas(el);
-      animator.onFrame(frames[0]!);
+    setStatus("ready");
 
-      // 視覚効果 off のとき GIF を自動再生しない
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      video.pause();
+      setIsPlaying(false);
+      return;
+    }
+
+    if (video.paused) {
+      void video.play().catch(() => {
         setIsPlaying(false);
-        animator.stop();
-      } else {
-        setIsPlaying(true);
-        animator.start();
-      }
+      });
+    }
+  }, []);
 
-      animatorRef.current = animator;
-    },
-    [data],
-  );
+  const handlePlay = useCallback(() => {
+    setIsPlaying(true);
+  }, []);
 
-  const [isPlaying, setIsPlaying] = useState(true);
+  const handlePause = useCallback(() => {
+    setIsPlaying(false);
+  }, []);
+
+  const handleError = useCallback(() => {
+    setStatus("error");
+    setIsPlaying(false);
+  }, []);
+
   const handleClick = useCallback(() => {
+    const video = videoRef.current;
+
     if (!isReady) {
       return;
     }
 
-    setIsPlaying((isPlaying) => {
-      if (isPlaying) {
-        animatorRef.current?.stop();
-      } else {
-        animatorRef.current?.start();
-      }
-      return !isPlaying;
-    });
+    if (video === null) {
+      return;
+    }
+
+    if (video.paused) {
+      void video.play().catch(() => {
+        setIsPlaying(false);
+      });
+      return;
+    }
+
+    video.pause();
   }, [isReady]);
 
   return (
     <AspectRatioBox aspectHeight={1} aspectWidth={1}>
       <button
-        aria-busy={isLoading}
+        aria-busy={status === "loading"}
         aria-label="動画プレイヤー"
         className="group relative block h-full w-full disabled:cursor-default"
         disabled={!isReady}
         onClick={handleClick}
         type="button"
       >
+        <video
+          ref={videoRef}
+          autoPlay
+          className={classNames("h-full w-full object-cover", {
+            invisible: !isReady,
+          })}
+          loop
+          muted
+          onError={handleError}
+          onLoadedData={handleLoadedData}
+          onLoadStart={handleLoadStart}
+          onPause={handlePause}
+          onPlay={handlePlay}
+          playsInline
+          preload="metadata"
+          src={src}
+        />
         {isReady ? (
           <>
-            <canvas ref={canvasCallbackRef} className="h-full w-full" />
             <div
               className={classNames(
                 "absolute left-1/2 top-1/2 flex items-center justify-center w-16 h-16 text-cax-surface-raised text-3xl bg-cax-overlay/50 rounded-full -translate-x-1/2 -translate-y-1/2",
@@ -93,14 +123,14 @@ export const PausableMovie = ({ src }: Props) => {
         ) : (
           <div
             className={classNames(
-              "flex h-full w-full items-center justify-center bg-cax-surface-subtle text-cax-text-muted",
+              "absolute inset-0 flex h-full w-full items-center justify-center bg-cax-surface-subtle text-cax-text-muted",
               {
-                "animate-pulse": isLoading,
+                "animate-pulse": status === "loading",
               },
             )}
           >
             <span className="rounded-full bg-cax-surface-raised/80 px-3 py-1 text-xs font-bold tracking-[0.2em]">
-              Loading...
+              {status === "error" ? "Unavailable" : "Loading..."}
             </span>
           </div>
         )}
