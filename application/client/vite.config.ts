@@ -35,8 +35,8 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "../dist"),
     emptyOutDir: true,
-    minify: false,
-    sourcemap: "inline",
+    minify: true,
+    sourcemap: false,
     rollupOptions: {
       output: {
         entryFileNames: "scripts/[name].js",
