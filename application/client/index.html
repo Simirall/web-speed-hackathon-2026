@@ -1,14 +1,14 @@
 <!doctype html>
 <html lang="ja">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CaX</title>
-    <script src="/scripts/main.js"></script>
-    <link rel="stylesheet" href="/styles/main.css" />
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.1"></script>
-    <style type="text/tailwindcss">
-      @layer base {
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CaX</title>
+  <script type="module" src="/src/index.tsx"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.1"></script>
+  <style type="text/tailwindcss">
+    @layer base {
         button:not(:disabled),
         [role="button"]:not(:disabled) {
           cursor: pointer;
@@ -172,8 +172,10 @@
         }
       }
     </style>
-  </head>
-  <body class="bg-cax-canvas text-cax-text">
-    <div id="app"></div>
-  </body>
+</head>
+
+<body class="bg-cax-canvas text-cax-text">
+  <div id="app"></div>
+</body>
+
 </html>

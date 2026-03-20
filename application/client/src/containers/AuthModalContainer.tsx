@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { SubmissionError } from "redux-form";
 
 import { AuthFormData } from "@web-speed-hackathon-2026/client/src/auth/types";
 import { AuthModalPage } from "@web-speed-hackathon-2026/client/src/components/auth_modal/AuthModalPage";
@@ -11,12 +10,16 @@ interface Props {
   onUpdateActiveUser: (user: Models.User) => void;
 }
 
+type ApiError = {
+  responseJSON?: unknown;
+};
+
 const ERROR_MESSAGES: Record<string, string> = {
   INVALID_USERNAME: "ユーザー名に使用できない文字が含まれています",
   USERNAME_TAKEN: "ユーザー名が使われています",
 };
 
-function getErrorCode(err: JQuery.jqXHR<unknown>, type: "signin" | "signup"): string {
+function getErrorCode(err: ApiError, type: "signin" | "signup"): string {
   const responseJSON = err.responseJSON;
   if (
     typeof responseJSON !== "object" ||
@@ -67,11 +70,9 @@ export const AuthModalContainer = ({ id, onUpdateActiveUser }: Props) => {
           onUpdateActiveUser(user);
         }
         handleRequestCloseModal();
+        return null;
       } catch (err: unknown) {
-        const error = getErrorCode(err as JQuery.jqXHR<unknown>, values.type);
-        throw new SubmissionError({
-          _error: error,
-        });
+        return getErrorCode(err as ApiError, values.type);
       }
     },
     [handleRequestCloseModal, onUpdateActiveUser],

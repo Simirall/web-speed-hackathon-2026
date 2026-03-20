@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { Field, InjectedFormProps, reduxForm, WrappedFieldProps } from "redux-form";
 
 import { Timeline } from "@web-speed-hackathon-2026/client/src/components/timeline/Timeline";
 import {
   parseSearchQuery,
   sanitizeSearchText,
 } from "@web-speed-hackathon-2026/client/src/search/services";
-import { SearchFormData } from "@web-speed-hackathon-2026/client/src/search/types";
 import { validate } from "@web-speed-hackathon-2026/client/src/search/validation";
 import { analyzeSentiment } from "@web-speed-hackathon-2026/client/src/utils/negaposi_analyzer";
 
@@ -18,30 +16,71 @@ interface Props {
   results: Models.Post[];
 }
 
-const SearchInput = ({ input, meta }: WrappedFieldProps) => (
+const SearchInput = ({
+  value,
+  onChange,
+  errorMessage,
+}: {
+  value: string;
+  onChange: (nextValue: string) => void;
+  errorMessage?: string;
+}) => (
   <div className="flex flex-1 flex-col">
     <input
-      {...input}
+      value={value}
+      onChange={(event) => {
+        onChange(event.target.value);
+      }}
       className={`flex-1 rounded border px-4 py-2 focus:outline-none ${
-        meta.touched && meta.error
+        errorMessage
           ? "border-cax-danger focus:border-cax-danger"
           : "border-cax-border focus:border-cax-brand-strong"
       }`}
+      name="searchText"
       placeholder="検索 (例: キーワード since:2025-01-01 until:2025-12-31)"
       type="text"
     />
-    {meta.touched && meta.error && (
-      <span className="text-cax-danger mt-1 text-xs">{meta.error}</span>
-    )}
+    {errorMessage && <span className="text-cax-danger mt-1 text-xs">{errorMessage}</span>}
   </div>
 );
 
-const SearchPageComponent = ({
-  query,
-  results,
-  handleSubmit,
-}: Props & InjectedFormProps<SearchFormData, Props>) => {
+const SearchForm = ({ query }: Pick<Props, "query">) => {
   const navigate = useNavigate();
+  const [searchText, setSearchText] = useState(query);
+  const [errorMessage, setErrorMessage] = useState<string | undefined>();
+
+  const handleAction = (formData: FormData) => {
+    const nextSearchText = String(formData.get("searchText") ?? "");
+    const validationErrors = validate({ searchText: nextSearchText });
+
+    if (validationErrors.searchText) {
+      setErrorMessage(validationErrors.searchText);
+      return;
+    }
+
+    setErrorMessage(undefined);
+    const sanitizedText = sanitizeSearchText(nextSearchText.trim());
+    navigate(`/search?q=${encodeURIComponent(sanitizedText)}`);
+  };
+
+  return (
+    <form action={handleAction} className="flex gap-2">
+      <SearchInput
+        value={searchText}
+        onChange={(nextValue) => {
+          setSearchText(nextValue);
+          setErrorMessage(undefined);
+        }}
+        errorMessage={errorMessage}
+      />
+      <Button variant="primary" type="submit">
+        検索
+      </Button>
+    </form>
+  );
+};
+
+export const SearchPage = ({ query, results }: Props) => {
   const [isNegative, setIsNegative] = useState(false);
 
   const parsed = parseSearchQuery(query);
@@ -84,22 +123,10 @@ const SearchPageComponent = ({
     return parts.join(" ");
   }, [parsed]);
 
-  const onSubmit = (values: SearchFormData) => {
-    const sanitizedText = sanitizeSearchText(values.searchText.trim());
-    navigate(`/search?q=${encodeURIComponent(sanitizedText)}`);
-  };
-
   return (
     <div className="flex flex-col gap-4">
       <div className="bg-cax-surface p-4 shadow">
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="flex gap-2">
-            <Field name="searchText" component={SearchInput} />
-            <Button variant="primary" type="submit">
-              検索
-            </Button>
-          </div>
-        </form>
+        <SearchForm key={query} query={query} />
         <p className="text-cax-text-muted mt-2 text-xs">
           since:YYYY-MM-DD で開始日、until:YYYY-MM-DD で終了日を指定できます
         </p>
@@ -134,9 +161,3 @@ const SearchPageComponent = ({
     </div>
   );
 };
-
-export const SearchPage = reduxForm<SearchFormData, Props>({
-  form: "search",
-  enableReinitialize: true,
-  validate,
-})(SearchPageComponent);
