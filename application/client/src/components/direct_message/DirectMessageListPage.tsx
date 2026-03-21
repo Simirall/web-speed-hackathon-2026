@@ -1,5 +1,5 @@
 import moment from "moment";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@web-speed-hackathon-2026/client/src/components/foundation/Button";
 import { FontAwesomeIcon } from "@web-speed-hackathon-2026/client/src/components/foundation/FontAwesomeIcon";
@@ -17,6 +17,7 @@ export const DirectMessageListPage = ({ activeUser, newDmModalId }: Props) => {
   const [conversations, setConversations] =
     useState<Array<Models.DirectMessageConversation> | null>(null);
   const [error, setError] = useState<Error | null>(null);
+  const hasLoadedConversationsRef = useRef(false);
 
   const loadConversations = useCallback(async () => {
     if (activeUser == null) {
@@ -27,6 +28,7 @@ export const DirectMessageListPage = ({ activeUser, newDmModalId }: Props) => {
       const conversations = await fetchJSON<Array<Models.DirectMessageConversation>>("/api/v1/dm");
       setConversations(conversations);
       setError(null);
+      hasLoadedConversationsRef.current = true;
     } catch (error) {
       setConversations(null);
       setError(error as Error);
@@ -38,6 +40,9 @@ export const DirectMessageListPage = ({ activeUser, newDmModalId }: Props) => {
   }, [loadConversations]);
 
   useWs("/api/v1/dm/unread", () => {
+    if (!hasLoadedConversationsRef.current) {
+      return;
+    }
     void loadConversations();
   });
 

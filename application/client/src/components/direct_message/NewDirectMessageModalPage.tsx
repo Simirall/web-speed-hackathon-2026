@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useFormStatus } from "react-dom";
+import { FormEvent, useCallback, useState } from "react";
+import { useNavigate } from "react-router";
 
 import { Button } from "@web-speed-hackathon-2026/client/src/components/foundation/Button";
 import { FormInputField } from "@web-speed-hackathon-2026/client/src/components/foundation/FormInputField";
@@ -10,48 +10,65 @@ import { validate } from "@web-speed-hackathon-2026/client/src/direct_message/va
 
 interface Props {
   id: string;
-  onSubmit: (values: NewDirectMessageFormData) => Promise<string | null>;
+  onSubmit: (values: NewDirectMessageFormData) => Promise<{
+    conversationId: string | null;
+    error: string | null;
+  }>;
 }
 
-const SubmitButton = ({ disabled }: { disabled: boolean }) => {
-  const { pending } = useFormStatus();
-
+const SubmitButton = ({ disabled, loading }: { disabled: boolean; loading: boolean }) => {
   return (
-    <ModalSubmitButton disabled={disabled || pending} loading={pending}>
+    <ModalSubmitButton disabled={disabled || loading} loading={loading}>
       DMを開始
     </ModalSubmitButton>
   );
 };
 
 export const NewDirectMessageModalPage = ({ id, onSubmit }: Props) => {
+  const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [isDirty, setIsDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const validationErrors = validate({ username });
   const usernameError = isDirty ? validationErrors.username : undefined;
   const isInvalid = Object.keys(validationErrors).length > 0;
 
-  const handleAction = async (formData: FormData) => {
-    const nextUsername = String(formData.get("username") ?? "");
+  const handleSubmit = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+
+      const formData = new FormData(event.currentTarget);
+      const nextUsername = String(formData.get("username") ?? "");
     const nextValidationErrors = validate({ username: nextUsername });
 
-    setIsDirty(true);
+      setIsDirty(true);
 
-    if (Object.keys(nextValidationErrors).length > 0) {
-      setError(null);
-      return;
-    }
+      if (Object.keys(nextValidationErrors).length > 0) {
+        setError(null);
+        return;
+      }
 
-    const nextError = await onSubmit({ username: nextUsername });
-    setError(nextError);
-  };
+      setIsSubmitting(true);
+      try {
+        const result = await onSubmit({ username: nextUsername });
+        setError(result.error);
+        if (result.conversationId != null) {
+          navigate(`/dm/${result.conversationId}`);
+        }
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [navigate, onSubmit],
+  );
 
   return (
     <div className="grid gap-y-6">
       <h2 className="text-center text-2xl font-bold">新しくDMを始める</h2>
 
-      <form action={handleAction} className="flex flex-col gap-y-6">
+      <form className="flex flex-col gap-y-6" onSubmit={handleSubmit}>
         <FormInputField
           name="username"
           label="ユーザー名"
@@ -70,7 +87,7 @@ export const NewDirectMessageModalPage = ({ id, onSubmit }: Props) => {
         />
 
         <div className="grid gap-y-2">
-          <SubmitButton disabled={isInvalid} />
+          <SubmitButton disabled={isInvalid} loading={isSubmitting} />
           <Button variant="secondary" command="close" commandfor={id}>
             キャンセル
           </Button>
